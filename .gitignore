@@ -1,0 +1,23 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Local signing material
+*.jks
+*.keystore
+keystore.properties
+
+# Generated packages and local captures
+*.apk
+*.aab
+captures/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
