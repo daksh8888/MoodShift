@@ -99,11 +99,19 @@ public class HomeActivity extends Activity {
         for(android.content.pm.ResolveInfo ri:getPackageManager().queryIntentActivities(query,0)){
             try{String pkg=ri.activityInfo.packageName;CharSequence label=ri.loadLabel(getPackageManager());String name=label==null?pkg:label.toString();Drawable icon=ri.loadIcon(getPackageManager());Drawable banner=null;try{banner=ri.activityInfo.loadBanner(getPackageManager());}catch(Exception ignored){}if(banner==null)try{android.content.pm.ApplicationInfo ai=getPackageManager().getApplicationInfo(pkg,0);banner=ai.loadBanner(getPackageManager());}catch(Exception ignored){}found.put(pkg,new AppItem(pkg,name,icon,banner));}catch(Exception ignored){}
         }
-        for(String pkg:FAVORITE_PACKAGES){AppItem item=found.remove(pkg);if(item!=null)favorites.add(item);}
+        // Musify's official APK exposes a regular Android launcher activity rather than a Leanback one.
+        // Query only its known package names so it can be curated here without adding phone apps wholesale.
+        for(String pkg:new String[]{"com.gokadzev.musify.fdroid","com.gokadzev.musify"}){
+            if(found.containsKey(pkg))continue;
+            Intent regularQuery=new Intent(Intent.ACTION_MAIN);regularQuery.addCategory(Intent.CATEGORY_LAUNCHER);regularQuery.setPackage(pkg);
+            for(android.content.pm.ResolveInfo ri:getPackageManager().queryIntentActivities(regularQuery,0)){
+                try{CharSequence label=ri.loadLabel(getPackageManager());String name=label==null?pkg:label.toString();Drawable icon=ri.loadIcon(getPackageManager());found.put(pkg,new AppItem(pkg,name,icon,null));break;}catch(Exception ignored){}
+            }
+        }        for(String pkg:FAVORITE_PACKAGES){AppItem item=found.remove(pkg);if(item!=null)favorites.add(item);}
         found.remove("com.android.tv.settings");
         ArrayList<AppItem> candidates=new ArrayList<>(found.values());candidates.sort(Comparator.comparing(a->a.name.toLowerCase(Locale.ROOT)));
         // Keep the grid intentionally curated and ordered; unlisted system shortcuts stay installed but hidden here.
-        String[] order={"jiosphere","stube","flick","cast","novaplayer","playstore"};
+        String[] order={"jiosphere","stube","flick","cast","novaplayer","playstore","musify"};
         for(String key:order){AppItem item=findCuratedGridApp(candidates,key);if(item!=null){apps.add(item);candidates.remove(item);}}
         Drawable settingsIcon=getDrawable(android.R.drawable.ic_menu_preferences);String settingsLabel="Settings";
         try{android.content.pm.ResolveInfo ri=getPackageManager().resolveActivity(new Intent(Settings.ACTION_SETTINGS),0);if(ri!=null){settingsIcon=ri.loadIcon(getPackageManager());CharSequence label=ri.loadLabel(getPackageManager());if(label!=null)settingsLabel=label.toString();}}catch(Exception ignored){}
@@ -119,6 +127,7 @@ public class HomeActivity extends Activity {
                 case "cast":match=name.equals("cast")||name.equals("googlecast")||pkg.equals("comgoogleandroidappsmediashell");break;
                 case "novaplayer":match=name.contains("novaplayer")||name.equals("nova")||pkg.contains("nova");break;
                 case "playstore":match=name.contains("googleplaystore")||name.equals("playstore")||pkg.equals("comandroidvending");break;
+                case "musify":match=name.equals("musify")||pkg.equals("comgokadzevmusify")||pkg.equals("comgokadzevmusifyfdroid");break;
             }
             if(match)return item;
         }
