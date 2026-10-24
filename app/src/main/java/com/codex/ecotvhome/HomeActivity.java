@@ -24,16 +24,16 @@ import java.util.*;
 
 /** Vivid, remote-first TV home inspired by the supplied Apple TV home-screen reference. */
 public class HomeActivity extends Activity {
-    private static final int COLUMNS=6;
+    private static final int COLUMNS=5;
     private static final String[] FAVORITE_PACKAGES={
             "com.google.android.youtube.tv","com.spotify.tv.android",
             "com.amazon.amazonvideo.livingroom","com.netflix.ninja","tv.willow"
     };
     private final ArrayList<AppItem> favorites=new ArrayList<>(),apps=new ArrayList<>();
     private RecyclerView grid;private LinearLayout favoriteRow;private AppAdapter adapter;private FrameLayout contentArea,shelf;private boolean gridExpanded=false;
-    private View dockGlassView;private ColorWash wallpaper;private boolean dockGlassPositioned=false;
+    private View dockGlassView,gridFocusGlassView;private ColorWash wallpaper;private boolean dockGlassPositioned=false,gridFocusGlassPositioned=false;
     private GradientDrawable tileIdle;
-    private TextView clockTime,clockDate,clockGreeting,clockWeekend,clockFestival;private int focusedPosition=0,favoritePosition=0;private boolean focusInFavorites=true;
+    private TextView clockTime,clockDate,clockGreeting,clockWeekend,clockFestival;private LinearLayout clockHeader,clockBlock;private View clockSpacer;private boolean clockOnRight=false;private int focusedPosition=0,favoritePosition=0;private boolean focusInFavorites=true;
     private final Handler clockHandler=new Handler(Looper.getMainLooper());
     private final PathInterpolator transitionEase=new PathInterpolator(.22f,.61f,.36f,1f);
     private final Runnable clockUpdater=new Runnable(){@Override public void run(){updateClock();clockHandler.postDelayed(this,30_000);}};
@@ -64,33 +64,33 @@ public class HomeActivity extends Activity {
     private TextView text(String s,float size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setGravity(Gravity.CENTER_VERTICAL);t.setIncludeFontPadding(false);return t;}
 
     private void build(){
-        FrameLayout root=new FrameLayout(this);wallpaper=new ColorWash();wallpaper.setNightMode(isNightTime());root.setBackground(wallpaper);setContentView(root);
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xff000000);wallpaper=new ColorWash();wallpaper.setWallpaperForHour(Calendar.getInstance().get(Calendar.HOUR_OF_DAY));FrameLayout screen=new FrameLayout(this);screen.setBackground(wallpaper);screen.setClipToOutline(true);screen.setOutlineProvider(new android.view.ViewOutlineProvider(){@Override public void getOutline(View view,android.graphics.Outline outline){outline.setRoundRect(0,0,view.getWidth(),view.getHeight(),dp(18));}});root.addView(screen,new FrameLayout.LayoutParams(-1,-1));setContentView(root);
         tileIdle=shape(0x00000000,17);
-        LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(34),dp(23),dp(34),dp(20));root.addView(page,new FrameLayout.LayoutParams(-1,-1));
+        LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(34),dp(23),dp(34),dp(20));screen.addView(page,new FrameLayout.LayoutParams(-1,-1));
 
-        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);page.addView(header,new LinearLayout.LayoutParams(-1,dp(108)));
-        LinearLayout clockBlock=new LinearLayout(this);clockBlock.setOrientation(LinearLayout.VERTICAL);clockBlock.setGravity(Gravity.CENTER_VERTICAL);header.addView(clockBlock,new LinearLayout.LayoutParams(-2,-1));
-        clockTime=text("",20,0xf5ffffff);clockTime.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));clockBlock.addView(clockTime,new LinearLayout.LayoutParams(-2,dp(25)));
-        clockDate=text("",11,0xd0ffffff);clockBlock.addView(clockDate,new LinearLayout.LayoutParams(-2,dp(16)));
-        clockGreeting=text("",15,0xf0ffffff);clockBlock.addView(clockGreeting,new LinearLayout.LayoutParams(-2,dp(20)));
-        clockWeekend=text("",13,0xe0ffffff);clockBlock.addView(clockWeekend,new LinearLayout.LayoutParams(-2,dp(18)));
-        clockFestival=text("",13,0xfff7d9ff);clockFestival.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));clockBlock.addView(clockFestival,new LinearLayout.LayoutParams(-2,dp(18)));
-        View spacer=new View(this);header.addView(spacer,new LinearLayout.LayoutParams(0,1,1));
+        clockHeader=new LinearLayout(this);clockHeader.setGravity(Gravity.CENTER_VERTICAL);page.addView(clockHeader,new LinearLayout.LayoutParams(-1,dp(108)));
+        clockBlock=new LinearLayout(this);clockBlock.setOrientation(LinearLayout.VERTICAL);clockBlock.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);clockHeader.addView(clockBlock,new LinearLayout.LayoutParams(dp(420),-1));
+        clockTime=text("",20,0xf5ffffff);clockTime.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));clockBlock.addView(clockTime,new LinearLayout.LayoutParams(-1,dp(25)));
+        clockDate=text("",11,0xd0ffffff);clockBlock.addView(clockDate,new LinearLayout.LayoutParams(-1,dp(16)));
+        clockGreeting=text("",15,0xf0ffffff);clockBlock.addView(clockGreeting,new LinearLayout.LayoutParams(-1,dp(20)));
+        clockWeekend=text("",13,0xe0ffffff);clockBlock.addView(clockWeekend,new LinearLayout.LayoutParams(-1,dp(18)));
+        clockFestival=text("",13,0xfff7d9ff);clockFestival.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));clockBlock.addView(clockFestival,new LinearLayout.LayoutParams(-1,dp(18)));
+        clockSpacer=new View(this);clockHeader.addView(clockSpacer,new LinearLayout.LayoutParams(0,1,1));
 
-        contentArea=new FrameLayout(this);page.addView(contentArea,new LinearLayout.LayoutParams(-1,0,1));
-        grid=new RecyclerView(this);grid.setVisibility(View.GONE);grid.setHasFixedSize(true);grid.setItemViewCacheSize(18);grid.setItemAnimator(null);grid.setClipChildren(false);grid.setClipToPadding(false);grid.setPadding(dp(2),dp(13),dp(2),dp(8));grid.setOverScrollMode(View.OVER_SCROLL_NEVER);grid.setLayoutManager(new GridLayoutManager(this,COLUMNS));FrameLayout.LayoutParams gridLp=new FrameLayout.LayoutParams(-1,-1,Gravity.TOP);gridLp.topMargin=dp(102);gridLp.bottomMargin=dp(8);contentArea.addView(grid,gridLp);
+        contentArea=new FrameLayout(this);page.addView(contentArea,new LinearLayout.LayoutParams(-1,0,1));gridFocusGlassView=new View(this);GradientDrawable gridLens=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x72ffffff,0x43ffffff,0x26ffffff});gridLens.setCornerRadius(dp(16));gridLens.setStroke(dp(1),0x96ffffff);gridFocusGlassView.setBackground(gridLens);gridFocusGlassView.setElevation(0);gridFocusGlassView.setTranslationZ(0);gridFocusGlassView.setStateListAnimator(null);gridFocusGlassView.setFocusable(false);gridFocusGlassView.setClickable(false);gridFocusGlassView.setVisibility(View.INVISIBLE);contentArea.addView(gridFocusGlassView,new FrameLayout.LayoutParams(dp(102),dp(64),Gravity.TOP|Gravity.LEFT));
+        grid=new RecyclerView(this);grid.setVisibility(View.GONE);grid.setHasFixedSize(true);grid.setItemViewCacheSize(18);grid.setItemAnimator(null);grid.setClipChildren(false);grid.setClipToPadding(false);grid.setPadding(dp(2),dp(13),dp(2),dp(8));grid.setOverScrollMode(View.OVER_SCROLL_NEVER);grid.setLayoutManager(new GridLayoutManager(this,COLUMNS));FrameLayout.LayoutParams gridLp=new FrameLayout.LayoutParams(dp(579),-1,Gravity.TOP|Gravity.CENTER_HORIZONTAL);gridLp.topMargin=dp(102);gridLp.bottomMargin=dp(8);contentArea.addView(grid,gridLp);
         adapter=new AppAdapter();grid.setAdapter(adapter);grid.setOnKeyListener((v,k,e)->e.getAction()==KeyEvent.ACTION_DOWN&&handleGridKey(k));
-        shelf=new FrameLayout(this);GradientDrawable glass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x80521263,0x80401859});glass.setCornerRadius(dp(25));glass.setStroke(dp(1),0x45ffffff);shelf.setBackground(glass);shelf.setElevation(0);shelf.setStateListAnimator(null);shelf.setClipChildren(false);shelf.setClipToPadding(false);shelf.setPadding(dp(8),0,dp(8),0);FrameLayout.LayoutParams shelfParams=new FrameLayout.LayoutParams(-2,dp(86),Gravity.CENTER_HORIZONTAL|Gravity.BOTTOM);contentArea.addView(shelf,shelfParams);
-        dockGlassView=new View(this);GradientDrawable lens=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x72ffffff,0x43ffffff,0x26ffffff});lens.setCornerRadius(dp(19));lens.setStroke(dp(1),0x96ffffff);dockGlassView.setBackground(lens);dockGlassView.setElevation(0);dockGlassView.setTranslationZ(0);dockGlassView.setStateListAnimator(null);dockGlassView.setClickable(false);dockGlassView.setFocusable(false);FrameLayout.LayoutParams lensParams=new FrameLayout.LayoutParams(dp(130),dp(76),Gravity.LEFT|Gravity.CENTER_VERTICAL);shelf.addView(dockGlassView,lensParams);
+        shelf=new FrameLayout(this);shelf.setBackground(new LiquidDockDrawable(dp(25),dp(1)));shelf.setElevation(0);shelf.setStateListAnimator(null);shelf.setClipChildren(false);shelf.setClipToPadding(false);shelf.setPadding(dp(8),0,dp(8),0);FrameLayout.LayoutParams shelfParams=new FrameLayout.LayoutParams(-2,dp(86),Gravity.CENTER_HORIZONTAL|Gravity.BOTTOM);contentArea.addView(shelf,shelfParams);
+        dockGlassView=new View(this);GradientDrawable lens=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x72ffffff,0x43ffffff,0x26ffffff});lens.setCornerRadius(dp(19));lens.setStroke(dp(1),0x96ffffff);dockGlassView.setBackground(lens);dockGlassView.setElevation(0);dockGlassView.setTranslationZ(0);dockGlassView.setStateListAnimator(null);dockGlassView.setClickable(false);dockGlassView.setFocusable(false);FrameLayout.LayoutParams lensParams=new FrameLayout.LayoutParams(dp(116),dp(76),Gravity.LEFT|Gravity.CENTER_VERTICAL);shelf.addView(dockGlassView,lensParams);
         favoriteRow=new LinearLayout(this);favoriteRow.setGravity(Gravity.CENTER);favoriteRow.setClipChildren(false);favoriteRow.setClipToPadding(false);FrameLayout.LayoutParams favParams=new FrameLayout.LayoutParams(-2,-1,Gravity.CENTER);shelf.addView(favoriteRow,favParams);
         loadApps();for(int i=0;i<favorites.size();i++)favoriteRow.addView(createFavoriteTile(favorites.get(i),i));
         adapter.notifyDataSetChanged();
         if(!favorites.isEmpty())favoriteRow.post(()->{View first=favoriteRow.getChildAt(0);if(first!=null)first.requestFocus();});
     }
 
-    private boolean isNightTime(){int hour=Calendar.getInstance().get(Calendar.HOUR_OF_DAY);return hour>=20||hour<8;}
-    private void updateClock(){if(clockTime==null||clockDate==null||clockGreeting==null||clockWeekend==null||clockFestival==null)return;Date now=new Date();clockTime.setText(DateFormat.getTimeInstance(DateFormat.SHORT,Locale.getDefault()).format(now));clockDate.setText(new SimpleDateFormat("EEEE, MMMM d",Locale.getDefault()).format(now));Calendar c=Calendar.getInstance();c.setTime(now);int hour=c.get(Calendar.HOUR_OF_DAY);String greeting=hour>=5&&hour<12?"Good Morning":hour<17?"Good Afternoon":hour<22?"Good Evening":"Why Still Up?";clockGreeting.setText(greeting);boolean friday=c.get(Calendar.DAY_OF_WEEK)==Calendar.FRIDAY;clockWeekend.setText("Any plans for weekend?");clockWeekend.setVisibility(friday?View.VISIBLE:View.GONE);String key=new SimpleDateFormat("yyyyMMdd",Locale.US).format(now);String festival=FESTIVAL_GREETINGS.get(key);clockFestival.setText(festival==null?"":festival);clockFestival.setVisibility(festival==null?View.GONE:View.VISIBLE);if(wallpaper!=null)wallpaper.setNightMode(hour>=20||hour<8);}
-    @Override protected void onResume(){super.onResume();clockHandler.removeCallbacks(clockUpdater);clockUpdater.run();}
+
+    private void updateClock(){if(clockTime==null||clockDate==null||clockGreeting==null||clockWeekend==null||clockFestival==null)return;Date now=new Date();clockTime.setText(DateFormat.getTimeInstance(DateFormat.SHORT,Locale.getDefault()).format(now));clockDate.setText(new SimpleDateFormat("EEEE, MMMM d",Locale.getDefault()).format(now));Calendar c=Calendar.getInstance();c.setTime(now);int hour=c.get(Calendar.HOUR_OF_DAY);String greeting=hour<5||hour>=22?"Why Still Up?":hour<12?"Good Morning":hour<17?"Good Afternoon":"Good Evening";clockGreeting.setText(greeting);boolean morning=hour>=6&&hour<17;int clockColor=morning?0xff111318:0xf5ffffff;clockTime.setTextColor(clockColor);clockDate.setTextColor(morning?0xff111318:0xd0ffffff);clockGreeting.setTextColor(morning?0xff111318:0xf0ffffff);clockWeekend.setTextColor(morning?0xff111318:0xe0ffffff);clockFestival.setTextColor(morning?0xff111318:0xfff7d9ff);alignClockBlock(hour<17||hour>=20);boolean friday=c.get(Calendar.DAY_OF_WEEK)==Calendar.FRIDAY;clockWeekend.setText("Any plans for weekend?");clockWeekend.setVisibility(friday?View.VISIBLE:View.GONE);String key=new SimpleDateFormat("yyyyMMdd",Locale.US).format(now);String festival=FESTIVAL_GREETINGS.get(key);clockFestival.setText(festival==null?"":festival);clockFestival.setVisibility(festival==null?View.GONE:View.VISIBLE);if(wallpaper!=null)wallpaper.setWallpaperForHour(hour);}
+    private void alignClockBlock(boolean right){if(clockHeader==null||clockBlock==null||clockSpacer==null||clockOnRight==right)return;clockHeader.removeAllViews();int gravity=Gravity.CENTER_VERTICAL|(right?Gravity.RIGHT:Gravity.LEFT);clockBlock.setGravity(gravity);for(TextView line:new TextView[]{clockTime,clockDate,clockGreeting,clockWeekend,clockFestival})line.setGravity(gravity);LinearLayout.LayoutParams blockParams=new LinearLayout.LayoutParams(dp(420),-1);LinearLayout.LayoutParams spacerParams=new LinearLayout.LayoutParams(0,1,1);if(right){clockHeader.addView(clockSpacer,spacerParams);clockHeader.addView(clockBlock,blockParams);}else{clockHeader.addView(clockBlock,blockParams);clockHeader.addView(clockSpacer,spacerParams);}clockOnRight=right;}    @Override protected void onResume(){super.onResume();clockHandler.removeCallbacks(clockUpdater);clockUpdater.run();}
     @Override protected void onPause(){clockHandler.removeCallbacks(clockUpdater);super.onPause();}
 
     private void loadApps(){
@@ -99,21 +99,40 @@ public class HomeActivity extends Activity {
             try{String pkg=ri.activityInfo.packageName;CharSequence label=ri.loadLabel(getPackageManager());String name=label==null?pkg:label.toString();Drawable icon=ri.loadIcon(getPackageManager());Drawable banner=null;try{banner=ri.activityInfo.loadBanner(getPackageManager());}catch(Exception ignored){}if(banner==null)try{android.content.pm.ApplicationInfo ai=getPackageManager().getApplicationInfo(pkg,0);banner=ai.loadBanner(getPackageManager());}catch(Exception ignored){}found.put(pkg,new AppItem(pkg,name,icon,banner));}catch(Exception ignored){}
         }
         for(String pkg:FAVORITE_PACKAGES){AppItem item=found.remove(pkg);if(item!=null)favorites.add(item);}
-        // Hide the TV Settings package's launcher shortcut: on this firmware it does not
-        // open Settings reliably. The explicit ACTION_SETTINGS tile below is the working entry.
         found.remove("com.android.tv.settings");
-        ArrayList<AppItem> other=new ArrayList<>(found.values());other.sort(Comparator.comparing(a->a.name.toLowerCase(Locale.ROOT)));
-        // Some RC-36 remotes report the physical Settings key as KEY_UNKNOWN, so it never
-        // reaches the Activity. Keep Android Settings accessible from the Down-to-open grid.
-        Drawable settingsIcon=getDrawable(android.R.drawable.ic_menu_preferences);
-        String settingsLabel="Settings";
+        ArrayList<AppItem> candidates=new ArrayList<>(found.values());candidates.sort(Comparator.comparing(a->a.name.toLowerCase(Locale.ROOT)));
+        // Keep the grid intentionally curated and ordered; unlisted system shortcuts stay installed but hidden here.
+        String[] order={"jiosphere","stube","flick","cast","novaplayer","playstore"};
+        for(String key:order){AppItem item=findCuratedGridApp(candidates,key);if(item!=null){apps.add(item);candidates.remove(item);}}
+        Drawable settingsIcon=getDrawable(android.R.drawable.ic_menu_preferences);String settingsLabel="Settings";
         try{android.content.pm.ResolveInfo ri=getPackageManager().resolveActivity(new Intent(Settings.ACTION_SETTINGS),0);if(ri!=null){settingsIcon=ri.loadIcon(getPackageManager());CharSequence label=ri.loadLabel(getPackageManager());if(label!=null)settingsLabel=label.toString();}}catch(Exception ignored){}
-        apps.add(new AppItem("@system-settings",settingsLabel,settingsIcon,null));apps.addAll(other);
+        apps.add(new AppItem("@system-settings",settingsLabel,settingsIcon,null));
     }
 
+    private AppItem findCuratedGridApp(List<AppItem> candidates,String key){
+        for(AppItem item:candidates){String name=item.name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]","");String pkg=item.pkg.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]","");boolean match=false;
+            switch(key){
+                case "jiosphere":match=name.contains("jiosphere")||pkg.contains("jiosphere");break;
+                case "stube":match=name.equals("stube")||name.contains("smarttube")||pkg.contains("smarttube")||pkg.contains("stube");break;
+                case "flick":match=name.contains("flick")||pkg.contains("flick");break;
+                case "cast":match=name.equals("cast")||name.equals("googlecast")||pkg.equals("comgoogleandroidappsmediashell");break;
+                case "novaplayer":match=name.contains("novaplayer")||name.equals("nova")||pkg.contains("nova");break;
+                case "playstore":match=name.contains("googleplaystore")||name.equals("playstore")||pkg.equals("comandroidvending");break;
+            }
+            if(match)return item;
+        }
+        return null;
+    }
+    private int dockIconOverride(String pkg){
+        if("com.google.android.youtube.tv".equals(pkg))return R.drawable.dock_youtube_vector;
+        if("com.amazon.amazonvideo.livingroom".equals(pkg))return R.drawable.dock_prime_video_vector;
+        if("com.netflix.ninja".equals(pkg))return R.drawable.dock_netflix_vector;
+        if("tv.willow".equals(pkg))return R.drawable.dock_willow_vector;
+        return 0;
+    }
     private View createFavoriteTile(AppItem item,int index){
         FrameLayout tile=new FrameLayout(this);tile.setFocusable(true);tile.setStateListAnimator(null);tile.setElevation(0);tile.setTranslationZ(0);tile.setContentDescription(item.name);tile.setBackground(tileIdle);LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);column.setGravity(Gravity.CENTER);tile.addView(column,new FrameLayout.LayoutParams(dp(115),-1));
-        ImageView image=new ImageView(this);image.setScaleType(item.banner!=null?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);image.setStateListAnimator(null);image.setElevation(0);image.setTranslationZ(0);image.setBackground(shape(0xff17131f,12));image.setClipToOutline(true);image.setImageDrawable(item.banner!=null?item.banner:item.icon);image.setContentDescription(item.name);column.addView(image,new LinearLayout.LayoutParams(dp(93),dp(56)));
+        int iconRes=dockIconOverride(item.pkg);ImageView image=new ImageView(this);image.setScaleType((iconRes!=0||item.banner!=null)?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);image.setStateListAnimator(null);image.setElevation(0);image.setTranslationZ(0);image.setBackground(shape(iconRes!=0?0xff000000:0xff17131f,12));image.setClipToOutline(true);image.setImageDrawable(iconRes!=0?getDrawable(iconRes):(item.banner!=null?item.banner:item.icon));image.setContentDescription(item.name);column.addView(image,new LinearLayout.LayoutParams(dp(93),dp(56)));
         tile.setLayoutParams(new LinearLayout.LayoutParams(dp(115),-1));
         tile.setOnFocusChangeListener((v,focus)->{animateTile(tile,image,focus);if(focus){focusInFavorites=true;favoritePosition=index;moveDockGlass(tile);}});tile.setOnClickListener(v->launch(item.pkg));tile.setOnKeyListener((v,k,e)->e.getAction()==KeyEvent.ACTION_DOWN&&handleFavoriteKey(k,index));return tile;
     }
@@ -133,38 +152,40 @@ public class HomeActivity extends Activity {
         dockGlassView.animate().translationX(target).setDuration(145)
                 .setInterpolator(new DecelerateInterpolator(1.2f)).start();
     }
-    private boolean handleFavoriteKey(int key,int index){if(key==KeyEvent.KEYCODE_DPAD_LEFT){if(index>0)favoriteRow.getChildAt(index-1).requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_RIGHT){if(index+1<favoriteRow.getChildCount())favoriteRow.getChildAt(index+1).requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_DOWN){showGrid();return true;}if(key==KeyEvent.KEYCODE_DPAD_UP)return true;return false;}
-    private boolean handleGridKey(int key){View f=getCurrentFocus();if(f==null)return false;int p=grid.getChildAdapterPosition(f);if(p==RecyclerView.NO_POSITION)return false;focusInFavorites=false;focusedPosition=p;if(key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT){int n=p+(key==KeyEvent.KEYCODE_DPAD_RIGHT?1:-1);if(n>=0&&n<apps.size())focusGrid(n);return true;}if(key==KeyEvent.KEYCODE_DPAD_UP){if(p>=COLUMNS)focusGrid(p-COLUMNS);else hideGridToDock();return true;}if(key==KeyEvent.KEYCODE_DPAD_DOWN){if(p+COLUMNS<apps.size())focusGrid(p+COLUMNS);return true;}return false;}
+    private void moveGridGlass(View tile){if(gridFocusGlassView==null||grid==null||tile==null||tile.getWidth()==0||gridFocusGlassView.getWidth()==0){if(tile!=null)tile.post(()->moveGridGlass(tile));return;}float x=grid.getX()+tile.getX()+(tile.getWidth()-gridFocusGlassView.getWidth())/2f;float y=grid.getY()+tile.getY()+(tile.getHeight()-gridFocusGlassView.getHeight())/2f;gridFocusGlassView.animate().cancel();if(!gridFocusGlassPositioned){gridFocusGlassPositioned=true;gridFocusGlassView.setTranslationX(x);gridFocusGlassView.setTranslationY(y);gridFocusGlassView.setAlpha(0f);gridFocusGlassView.setScaleX(.94f);gridFocusGlassView.setScaleY(.90f);gridFocusGlassView.setVisibility(View.VISIBLE);gridFocusGlassView.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(205).setInterpolator(new android.view.animation.OvershootInterpolator(.24f)).withLayer().start();return;}gridFocusGlassView.setVisibility(View.VISIBLE);gridFocusGlassView.animate().translationX(x).translationY(y).alpha(1f).setDuration(155).setInterpolator(transitionEase).withLayer().start();}
+    private boolean isSelectKey(int key){return key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER||key==KeyEvent.KEYCODE_NUMPAD_ENTER;}
+    private boolean handleFavoriteKey(int key,int index){if(isSelectKey(key)){if(index>=0&&index<favorites.size())launch(favorites.get(index).pkg);return true;}if(key==KeyEvent.KEYCODE_DPAD_LEFT){if(index>0)favoriteRow.getChildAt(index-1).requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_RIGHT){if(index+1<favoriteRow.getChildCount())favoriteRow.getChildAt(index+1).requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_DOWN){showGrid();return true;}if(key==KeyEvent.KEYCODE_DPAD_UP)return true;return false;}
+    private boolean handleGridKey(int key){View f=getCurrentFocus();if(f==null)return false;int p=grid.getChildAdapterPosition(f);if(p==RecyclerView.NO_POSITION)return false;focusInFavorites=false;focusedPosition=p;if(isSelectKey(key)){if(p>=0&&p<apps.size())launch(apps.get(p).pkg);return true;}if(key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT){int n=p+(key==KeyEvent.KEYCODE_DPAD_RIGHT?1:-1);if(n>=0&&n<apps.size())focusGrid(n);return true;}if(key==KeyEvent.KEYCODE_DPAD_UP){if(p>=COLUMNS)focusGrid(p-COLUMNS);else hideGridToDock();return true;}if(key==KeyEvent.KEYCODE_DPAD_DOWN){if(p+COLUMNS<apps.size())focusGrid(p+COLUMNS);return true;}return false;}
     private void showGrid(){
         if(apps.isEmpty()||gridExpanded)return;
         if(contentArea.getHeight()==0){contentArea.post(this::showGrid);return;}
+        shelf.animate().cancel();grid.animate().cancel();
         gridExpanded=true;int travel=Math.max(0,contentArea.getHeight()-dp(8)-shelf.getHeight());
         FrameLayout.LayoutParams dockLp=(FrameLayout.LayoutParams)shelf.getLayoutParams();dockLp.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;dockLp.topMargin=dp(8);shelf.setLayoutParams(dockLp);shelf.setTranslationY(travel);
-        grid.setVisibility(View.VISIBLE);grid.setAlpha(0f);grid.setTranslationY(dp(18));
-        shelf.animate().cancel();shelf.animate().translationY(0).setDuration(460).setInterpolator(transitionEase).withLayer().start();
-        grid.animate().cancel();grid.animate().alpha(1f).translationY(0).setStartDelay(40).setDuration(400).setInterpolator(transitionEase).withLayer().start();
-        grid.postDelayed(()->{if(gridExpanded)focusGrid(Math.min(focusedPosition,apps.size()-1));},480);
+        grid.setVisibility(View.VISIBLE);grid.setAlpha(0f);grid.setTranslationY(dp(24));grid.setPivotY(0f);grid.setScaleY(.965f);
+        shelf.animate().translationY(0).setDuration(490).setInterpolator(new android.view.animation.OvershootInterpolator(.22f)).withLayer().start();
+        grid.animate().alpha(1f).translationY(0).scaleY(1f).setStartDelay(12).setDuration(440).setInterpolator(transitionEase).withLayer().start();
+        grid.postDelayed(()->{if(gridExpanded)focusGrid(Math.min(focusedPosition,apps.size()-1));},90);
     }
     private void hideGridToDock(){
         if(!gridExpanded){focusFavorite(favoritePosition);return;}
-        gridExpanded=false;int travel=Math.max(0,contentArea.getHeight()-dp(8)-shelf.getHeight());
-        shelf.animate().cancel();grid.animate().cancel();
+        gridExpanded=false;shelf.animate().cancel();grid.animate().cancel();
+        if(gridFocusGlassView!=null){gridFocusGlassView.animate().cancel();gridFocusGlassView.animate().alpha(0f).scaleX(.96f).scaleY(.92f).setDuration(115).setInterpolator(transitionEase).withEndAction(()->{if(!gridExpanded){gridFocusGlassView.setVisibility(View.INVISIBLE);gridFocusGlassPositioned=false;gridFocusGlassView.setScaleX(1f);gridFocusGlassView.setScaleY(1f);}}).start();}
+        int travel=Math.max(0,contentArea.getHeight()-dp(8)-shelf.getHeight());
         FrameLayout.LayoutParams dockLp=(FrameLayout.LayoutParams)shelf.getLayoutParams();dockLp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;dockLp.topMargin=0;shelf.setLayoutParams(dockLp);shelf.setTranslationY(-travel);
-        shelf.animate().translationY(0).setDuration(460).setInterpolator(transitionEase).withLayer().start();
-        grid.animate().alpha(0f).translationY(dp(12)).setDuration(300).setInterpolator(transitionEase).withLayer().withEndAction(()->{if(!gridExpanded){grid.setVisibility(View.GONE);grid.setAlpha(1f);grid.setTranslationY(0);}}).start();
-        shelf.postDelayed(()->{if(!gridExpanded)focusFavorite(favoritePosition);},480);
-    }
-    private void focusGrid(int p){if(apps.isEmpty())return;focusedPosition=Math.max(0,Math.min(p,apps.size()-1));grid.scrollToPosition(focusedPosition);grid.post(()->{RecyclerView.ViewHolder h=grid.findViewHolderForAdapterPosition(focusedPosition);if(h!=null)h.itemView.requestFocus();});}
+        shelf.animate().translationY(0).setDuration(490).setInterpolator(new android.view.animation.OvershootInterpolator(.22f)).withLayer().withEndAction(()->{if(!gridExpanded)focusFavorite(favoritePosition);}).start();
+        grid.animate().alpha(0f).translationY(dp(16)).scaleY(.985f).setDuration(310).setInterpolator(transitionEase).withLayer().withEndAction(()->{if(!gridExpanded){grid.setVisibility(View.GONE);grid.setAlpha(1f);grid.setTranslationY(0);grid.setScaleY(1f);}}).start();
+    }    private void focusGrid(int p){if(apps.isEmpty())return;focusedPosition=Math.max(0,Math.min(p,apps.size()-1));grid.scrollToPosition(focusedPosition);grid.post(()->{RecyclerView.ViewHolder h=grid.findViewHolderForAdapterPosition(focusedPosition);if(h!=null)h.itemView.requestFocus();});}
     private void focusFavorite(int p){if(favoriteRow.getChildCount()==0)return;favoritePosition=Math.max(0,Math.min(p,favoriteRow.getChildCount()-1));View v=favoriteRow.getChildAt(favoritePosition);if(v!=null)v.requestFocus();}
 
     private final class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder>{
         final class Holder extends RecyclerView.ViewHolder{final FrameLayout tile;final ImageView image;Holder(FrameLayout v,ImageView i){super(v);tile=v;image=i;}}
         @Override public Holder onCreateViewHolder(ViewGroup parent,int type){FrameLayout tile=new FrameLayout(HomeActivity.this);tile.setFocusable(true);tile.setStateListAnimator(null);tile.setElevation(0);tile.setTranslationZ(0);tile.setBackground(tileIdle);LinearLayout col=new LinearLayout(HomeActivity.this);col.setOrientation(LinearLayout.VERTICAL);col.setGravity(Gravity.CENTER);tile.addView(col,new FrameLayout.LayoutParams(-1,-1));ImageView image=new ImageView(HomeActivity.this);image.setScaleType(ImageView.ScaleType.FIT_XY);image.setStateListAnimator(null);image.setElevation(0);image.setTranslationZ(0);image.setBackground(shape(0xff17131f,11));image.setClipToOutline(true);LinearLayout.LayoutParams imageParams=new LinearLayout.LayoutParams(dp(82),dp(49));col.addView(image,imageParams);tile.setContentDescription("App");tile.setLayoutParams(new RecyclerView.LayoutParams(-1,dp(74)));return new Holder(tile,image);}
-        @Override public void onBindViewHolder(Holder h,int position){AppItem item=apps.get(position);h.image.setImageDrawable(item.banner!=null?item.banner:item.icon);h.image.setScaleType(item.banner!=null?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);h.image.setContentDescription(item.name);h.tile.setContentDescription(item.name);h.tile.setOnClickListener(v->launch(item.pkg));h.tile.setOnFocusChangeListener((v,focus)->{animateTile(h.tile,h.image,focus);if(focus){focusInFavorites=false;focusedPosition=h.getBindingAdapterPosition();}});h.tile.setOnKeyListener((v,k,e)->e.getAction()==KeyEvent.ACTION_DOWN&&handleGridKey(k));}
+        @Override public void onBindViewHolder(Holder h,int position){AppItem item=apps.get(position);h.image.setImageDrawable(item.banner!=null?item.banner:item.icon);h.image.setScaleType(item.banner!=null?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);h.image.setContentDescription(item.name);h.tile.setContentDescription(item.name);h.tile.setOnClickListener(v->launch(item.pkg));h.tile.setOnFocusChangeListener((v,focus)->{animateTile(h.tile,h.image,focus);if(focus){focusInFavorites=false;focusedPosition=h.getBindingAdapterPosition();moveGridGlass(h.tile);}});h.tile.setOnKeyListener((v,k,e)->e.getAction()==KeyEvent.ACTION_DOWN&&handleGridKey(k));}
         @Override public int getItemCount(){return apps.size();}
     }
 
-    private void launch(String pkg){try{Intent i;if("@system-settings".equals(pkg)){i=new Intent(Settings.ACTION_SETTINGS);}else{i=getPackageManager().getLaunchIntentForPackage(pkg);if(i==null){i=new Intent(Intent.ACTION_MAIN);i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);i.setPackage(pkg);}}i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);startActivity(i);}catch(Exception ignored){}}
+    private void launch(String pkg){try{Intent i;if("@system-settings".equals(pkg)){i=new Intent(Settings.ACTION_SETTINGS);}else{i=getPackageManager().getLaunchIntentForPackage(pkg);if(i==null){i=new Intent(Intent.ACTION_MAIN);i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);i.setPackage(pkg);android.content.pm.ResolveInfo resolved=getPackageManager().resolveActivity(i,0);if(resolved!=null&&resolved.activityInfo!=null)i.setClassName(pkg,resolved.activityInfo.name);}}i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);startActivity(i);}catch(Exception ignored){}}
     @Override public boolean dispatchKeyEvent(KeyEvent event){
         // The RC-36 YouTube Music shortcut arrives as Linux KEY_DATABASE (219).
         // Consume both edges so the firmware's original shortcut cannot race our app launch.
@@ -179,25 +200,55 @@ public class HomeActivity extends Activity {
     @Override public boolean onKeyDown(int keyCode,KeyEvent event){if(keyCode==KeyEvent.KEYCODE_SETTINGS){try{startActivity(new Intent(Settings.ACTION_SETTINGS));return true;}catch(Exception ignored){}}return super.onKeyDown(keyCode,event);}
     @Override public void onBackPressed(){if(grid!=null&&grid.getVisibility()==View.VISIBLE){hideGridToDock();return;}super.onBackPressed();}
 
+    /** Smoked graphite liquid glass dock with a restrained neutral sheen and fine inset edges. */
+    private final class LiquidDockDrawable extends Drawable{
+        private final Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint sheen=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint refraction=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint edge=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float radius,strokeWidth;
+        private int drawableAlpha=255;
+        private android.graphics.ColorFilter colorFilter;
+        LiquidDockDrawable(float radius,float strokeWidth){this.radius=radius;this.strokeWidth=strokeWidth;edge.setStyle(Paint.Style.STROKE);edge.setStrokeWidth(strokeWidth);}
+        @Override public void draw(Canvas canvas){
+            Rect bounds=getBounds();if(bounds.isEmpty())return;
+            RectF r=new RectF(bounds);
+            fill.setShader(new LinearGradient(r.left,r.top,r.left,r.bottom,new int[]{0xd817191e,0xde0b0d12,0xe111141a},null,Shader.TileMode.CLAMP));
+            fill.setAlpha(drawableAlpha);fill.setColorFilter(colorFilter);canvas.drawRoundRect(r,radius,radius,fill);
+            sheen.setShader(new LinearGradient(r.left,r.top,r.left,r.bottom,new int[]{0x24ffffff,0x0cffffff,0x00ffffff},new float[]{0f,.38f,1f},Shader.TileMode.CLAMP));
+            sheen.setAlpha(drawableAlpha);sheen.setColorFilter(colorFilter);canvas.drawRoundRect(r,radius,radius,sheen);
+            refraction.setShader(new LinearGradient(r.left,r.top,r.right,r.bottom,new int[]{0x14ffffff,0x04171c28,0x1b7c8798},new float[]{0f,.52f,1f},Shader.TileMode.CLAMP));
+            refraction.setAlpha(drawableAlpha);refraction.setColorFilter(colorFilter);canvas.drawRoundRect(r,radius,radius,refraction);
+            edge.setShader(null);edge.setColor(0x55d2d9e3);edge.setAlpha(drawableAlpha);edge.setColorFilter(colorFilter);canvas.drawRoundRect(r,radius,radius,edge);
+            RectF inner=new RectF(r);inner.inset(strokeWidth*1.6f,strokeWidth*1.6f);
+            edge.setColor(0x20ffffff);canvas.drawRoundRect(inner,Math.max(0,radius-strokeWidth*1.6f),Math.max(0,radius-strokeWidth*1.6f),edge);
+        }
+        @Override public void setAlpha(int alpha){drawableAlpha=alpha;invalidateSelf();}
+        @Override public void setColorFilter(android.graphics.ColorFilter filter){colorFilter=filter;invalidateSelf();}
+        @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
+    }
     /** Saturated, soft-focus color field from the supplied visual reference. */
     private final class ColorWash extends Drawable{
-        private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint bitmapPaint=new Paint(Paint.FILTER_BITMAP_FLAG);
-        private Bitmap cached;private int cachedWidth,cachedHeight;private boolean nightMode;
-        void setNightMode(boolean night){if(nightMode==night)return;nightMode=night;if(cached!=null){cached.recycle();cached=null;}invalidateSelf();}
+        private Bitmap cached;private int cachedWidth,cachedHeight,currentResource;
+        void setWallpaperForHour(int hour){int resource=hour>=20||hour<6?R.drawable.wallpaper_night:hour>=17?R.drawable.wallpaper_evening:R.drawable.wallpaper_morning;if(currentResource==resource)return;currentResource=resource;if(cached!=null){cached.recycle();cached=null;}invalidateSelf();}
         @Override public void draw(Canvas c){Rect b=getBounds();int w=b.width(),h=b.height();if(w<=0||h<=0)return;
             if(cached==null||cachedWidth!=w||cachedHeight!=h){
-                if(cached!=null)cached.recycle();cached=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);cachedWidth=w;cachedHeight=h;
-                Canvas art=new Canvas(cached);Rect area=new Rect(0,0,w,h);
-                int[] base=nightMode?new int[]{0xff120d20,0xff1b1028,0xff171025,0xff0c1020}:new int[]{0xff7d064e,0xffb30071,0xffc40c6f,0xff591477};
-                p.setShader(new LinearGradient(0,0,w,h,base,null,Shader.TileMode.CLAMP));art.drawRect(area,p);
-                glow(art,w*.26f,h*.12f,w*.39f,nightMode?0x35a64e42:0xc4ff4b26);glow(art,w*.82f,h*.24f,w*.34f,nightMode?0x358c2c78:0x9af6009a);
-                glow(art,w*.11f,h*.74f,w*.43f,nightMode?0x3d7b252d:0xeaff160c);glow(art,w*.52f,h*.91f,w*.34f,nightMode?0x2d214f85:0xc700a9f2);glow(art,w*.91f,h*.72f,w*.4f,nightMode?0x3d795533:0xd4ffa53c);
-                p.setShader(new LinearGradient(0,0,0,h,nightMode?0x2404000d:0x00300034,nightMode?0x9904000d:0x65090030,Shader.TileMode.CLAMP));art.drawRect(area,p);p.setShader(null);
+                if(cached!=null)cached.recycle();
+                BitmapFactory.Options options=new BitmapFactory.Options();options.inScaled=false;
+                options.inPreferredConfig=Bitmap.Config.ARGB_8888;
+                int resource=currentResource;
+                android.util.DisplayMetrics metrics=getResources().getDisplayMetrics();
+                int targetWidth=Math.max(w,metrics.widthPixels),targetHeight=Math.max(h,metrics.heightPixels);
+                android.graphics.BitmapFactory.Options bounds=new android.graphics.BitmapFactory.Options();bounds.inJustDecodeBounds=true;
+                BitmapFactory.decodeResource(getResources(),resource,bounds);
+                int sample=1;while(bounds.outWidth/(sample*2)>=targetWidth&&bounds.outHeight/(sample*2)>=targetHeight)sample*=2;
+                options.inSampleSize=sample;
+                cached=BitmapFactory.decodeResource(getResources(),resource,options);
+                cachedWidth=w;cachedHeight=h;
             }
             c.drawBitmap(cached,null,b,bitmapPaint);
         }
-        private void glow(Canvas c,float x,float y,float r,int color){int a=Color.alpha(color);p.setShader(new RadialGradient(x,y,r,new int[]{color,Color.argb((int)(a*.54f),Color.red(color),Color.green(color),Color.blue(color)),0x00100030},new float[]{0,.55f,1},Shader.TileMode.CLAMP));c.drawRect(0,0,cachedWidth,cachedHeight,p);}
-        @Override public void setAlpha(int a){p.setAlpha(a);invalidateSelf();}@Override public void setColorFilter(android.graphics.ColorFilter f){p.setColorFilter(f);invalidateSelf();}@Override public int getOpacity(){return android.graphics.PixelFormat.OPAQUE;}
+        @Override public void setAlpha(int a){bitmapPaint.setAlpha(a);invalidateSelf();}@Override public void setColorFilter(android.graphics.ColorFilter f){bitmapPaint.setColorFilter(f);invalidateSelf();}@Override public int getOpacity(){return android.graphics.PixelFormat.OPAQUE;}
     }
 }
