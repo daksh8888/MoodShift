@@ -143,7 +143,7 @@ public class HomeActivity extends Activity {
         boolean spotifyMorning=morning&&"com.spotify.tv.android".equals(item.pkg);
         boolean custom=iconRes!=0||spotifyMorning;
         image.setScaleType((custom||item.banner!=null)?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);
-        image.setBackground(shape(morning&&custom?0xffffffff:iconRes!=0?0xff000000:0xff17131f,12));
+        image.setBackground(shape(morning&&custom?0xffffffff:0xff000000,12));
         image.setClipToOutline(true);
         Drawable artwork=spotifyMorning?new SpotifyMorningDrawable():iconRes!=0?getDrawable(iconRes):(item.banner!=null?item.banner:item.icon);
         image.setImageDrawable(artwork);
