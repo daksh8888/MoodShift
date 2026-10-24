@@ -29,7 +29,7 @@ public class HomeActivity extends Activity {
             "com.google.android.youtube.tv","com.spotify.tv.android",
             "com.amazon.amazonvideo.livingroom","com.netflix.ninja","tv.willow"
     };
-    private final ArrayList<AppItem> favorites=new ArrayList<>(),apps=new ArrayList<>();
+    private final ArrayList<AppItem> favorites=new ArrayList<>(),apps=new ArrayList<>();private final ArrayList<ImageView> favoriteImages=new ArrayList<>();private boolean dockMorningMode;
     private RecyclerView grid;private LinearLayout favoriteRow;private AppAdapter adapter;private FrameLayout contentArea,shelf;private boolean gridExpanded=false;
     private View dockGlassView,gridFocusGlassView;private ColorWash wallpaper;private boolean dockGlassPositioned=false,gridFocusGlassPositioned=false;
     private GradientDrawable tileIdle;
@@ -64,7 +64,7 @@ public class HomeActivity extends Activity {
     private TextView text(String s,float size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setGravity(Gravity.CENTER_VERTICAL);t.setIncludeFontPadding(false);return t;}
 
     private void build(){
-        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xff000000);wallpaper=new ColorWash();wallpaper.setWallpaperForHour(Calendar.getInstance().get(Calendar.HOUR_OF_DAY));FrameLayout screen=new FrameLayout(this);screen.setBackground(wallpaper);screen.setClipToOutline(true);screen.setOutlineProvider(new android.view.ViewOutlineProvider(){@Override public void getOutline(View view,android.graphics.Outline outline){outline.setRoundRect(0,0,view.getWidth(),view.getHeight(),dp(18));}});root.addView(screen,new FrameLayout.LayoutParams(-1,-1));setContentView(root);
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xff000000);int currentHour=Calendar.getInstance().get(Calendar.HOUR_OF_DAY);dockMorningMode=isMorningHour(currentHour);wallpaper=new ColorWash();wallpaper.setWallpaperForHour(currentHour);FrameLayout screen=new FrameLayout(this);screen.setBackground(wallpaper);screen.setClipToOutline(true);screen.setOutlineProvider(new android.view.ViewOutlineProvider(){@Override public void getOutline(View view,android.graphics.Outline outline){outline.setRoundRect(0,0,view.getWidth(),view.getHeight(),dp(18));}});root.addView(screen,new FrameLayout.LayoutParams(-1,-1));setContentView(root);
         tileIdle=shape(0x00000000,17);
         LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(34),dp(23),dp(34),dp(20));screen.addView(page,new FrameLayout.LayoutParams(-1,-1));
 
@@ -89,7 +89,8 @@ public class HomeActivity extends Activity {
     }
 
 
-    private void updateClock(){if(clockTime==null||clockDate==null||clockGreeting==null||clockWeekend==null||clockFestival==null)return;Date now=new Date();clockTime.setText(DateFormat.getTimeInstance(DateFormat.SHORT,Locale.getDefault()).format(now));clockDate.setText(new SimpleDateFormat("EEEE, MMMM d",Locale.getDefault()).format(now));Calendar c=Calendar.getInstance();c.setTime(now);int hour=c.get(Calendar.HOUR_OF_DAY);String greeting=hour<5||hour>=22?"Why Still Up?":hour<12?"Good Morning":hour<17?"Good Afternoon":"Good Evening";clockGreeting.setText(greeting);boolean morning=hour>=6&&hour<17;int clockColor=morning?0xff111318:0xf5ffffff;clockTime.setTextColor(clockColor);clockDate.setTextColor(morning?0xff111318:0xd0ffffff);clockGreeting.setTextColor(morning?0xff111318:0xf0ffffff);clockWeekend.setTextColor(morning?0xff111318:0xe0ffffff);clockFestival.setTextColor(morning?0xff111318:0xfff7d9ff);alignClockBlock(hour<17||hour>=20);boolean friday=c.get(Calendar.DAY_OF_WEEK)==Calendar.FRIDAY;clockWeekend.setText("Any plans for weekend?");clockWeekend.setVisibility(friday?View.VISIBLE:View.GONE);String key=new SimpleDateFormat("yyyyMMdd",Locale.US).format(now);String festival=FESTIVAL_GREETINGS.get(key);clockFestival.setText(festival==null?"":festival);clockFestival.setVisibility(festival==null?View.GONE:View.VISIBLE);if(wallpaper!=null)wallpaper.setWallpaperForHour(hour);}
+    private boolean isMorningHour(int hour){return hour>=6&&hour<17;}
+    private void updateClock(){if(clockTime==null||clockDate==null||clockGreeting==null||clockWeekend==null||clockFestival==null)return;Date now=new Date();clockTime.setText(DateFormat.getTimeInstance(DateFormat.SHORT,Locale.getDefault()).format(now));clockDate.setText(new SimpleDateFormat("EEEE, MMMM d",Locale.getDefault()).format(now));Calendar c=Calendar.getInstance();c.setTime(now);int hour=c.get(Calendar.HOUR_OF_DAY);String greeting=hour<5||hour>=22?"Why Still Up?":hour<12?"Good Morning":hour<17?"Good Afternoon":"Good Evening";clockGreeting.setText(greeting);boolean morning=isMorningHour(hour);if(dockMorningMode!=morning){dockMorningMode=morning;for(int i=0;i<favoriteImages.size()&&i<favorites.size();i++)bindFavoriteArtwork(favoriteImages.get(i),favorites.get(i),morning);}int clockColor=morning?0xff111318:0xf5ffffff;clockTime.setTextColor(clockColor);clockDate.setTextColor(morning?0xff111318:0xd0ffffff);clockGreeting.setTextColor(morning?0xff111318:0xf0ffffff);clockWeekend.setTextColor(morning?0xff111318:0xe0ffffff);clockFestival.setTextColor(morning?0xff111318:0xfff7d9ff);alignClockBlock(hour<17||hour>=20);boolean friday=c.get(Calendar.DAY_OF_WEEK)==Calendar.FRIDAY;clockWeekend.setText("Any plans for weekend?");clockWeekend.setVisibility(friday?View.VISIBLE:View.GONE);String key=new SimpleDateFormat("yyyyMMdd",Locale.US).format(now);String festival=FESTIVAL_GREETINGS.get(key);clockFestival.setText(festival==null?"":festival);clockFestival.setVisibility(festival==null?View.GONE:View.VISIBLE);if(wallpaper!=null)wallpaper.setWallpaperForHour(hour);}
     private void alignClockBlock(boolean right){if(clockHeader==null||clockBlock==null||clockSpacer==null||clockOnRight==right)return;clockHeader.removeAllViews();int gravity=Gravity.CENTER_VERTICAL|(right?Gravity.RIGHT:Gravity.LEFT);clockBlock.setGravity(gravity);for(TextView line:new TextView[]{clockTime,clockDate,clockGreeting,clockWeekend,clockFestival})line.setGravity(gravity);LinearLayout.LayoutParams blockParams=new LinearLayout.LayoutParams(dp(420),-1);LinearLayout.LayoutParams spacerParams=new LinearLayout.LayoutParams(0,1,1);if(right){clockHeader.addView(clockSpacer,spacerParams);clockHeader.addView(clockBlock,blockParams);}else{clockHeader.addView(clockBlock,blockParams);clockHeader.addView(clockSpacer,spacerParams);}clockOnRight=right;}    @Override protected void onResume(){super.onResume();clockHandler.removeCallbacks(clockUpdater);clockUpdater.run();}
     @Override protected void onPause(){clockHandler.removeCallbacks(clockUpdater);super.onPause();}
 
@@ -130,11 +131,46 @@ public class HomeActivity extends Activity {
         if("tv.willow".equals(pkg))return R.drawable.dock_willow_vector;
         return 0;
     }
+    private int morningDockIconOverride(String pkg){
+        if("com.google.android.youtube.tv".equals(pkg))return R.drawable.dock_youtube_morning_vector;
+        if("com.amazon.amazonvideo.livingroom".equals(pkg))return R.drawable.dock_prime_video_morning_vector;
+        if("com.netflix.ninja".equals(pkg))return R.drawable.dock_netflix_morning_vector;
+        if("tv.willow".equals(pkg))return R.drawable.dock_willow_morning_vector;
+        return 0;
+    }
+    private void bindFavoriteArtwork(ImageView image,AppItem item,boolean morning){
+        int iconRes=morning?morningDockIconOverride(item.pkg):dockIconOverride(item.pkg);
+        boolean spotifyMorning=morning&&"com.spotify.tv.android".equals(item.pkg);
+        boolean custom=iconRes!=0||spotifyMorning;
+        image.setScaleType((custom||item.banner!=null)?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);
+        image.setBackground(shape(morning&&custom?0xffffffff:iconRes!=0?0xff000000:0xff17131f,12));
+        image.setClipToOutline(true);
+        Drawable artwork=spotifyMorning?new SpotifyMorningDrawable():iconRes!=0?getDrawable(iconRes):(item.banner!=null?item.banner:item.icon);
+        image.setImageDrawable(artwork);
+    }
     private View createFavoriteTile(AppItem item,int index){
         FrameLayout tile=new FrameLayout(this);tile.setFocusable(true);tile.setStateListAnimator(null);tile.setElevation(0);tile.setTranslationZ(0);tile.setContentDescription(item.name);tile.setBackground(tileIdle);LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);column.setGravity(Gravity.CENTER);tile.addView(column,new FrameLayout.LayoutParams(dp(115),-1));
-        int iconRes=dockIconOverride(item.pkg);ImageView image=new ImageView(this);image.setScaleType((iconRes!=0||item.banner!=null)?ImageView.ScaleType.FIT_XY:ImageView.ScaleType.FIT_CENTER);image.setStateListAnimator(null);image.setElevation(0);image.setTranslationZ(0);image.setBackground(shape(iconRes!=0?0xff000000:0xff17131f,12));image.setClipToOutline(true);image.setImageDrawable(iconRes!=0?getDrawable(iconRes):(item.banner!=null?item.banner:item.icon));image.setContentDescription(item.name);column.addView(image,new LinearLayout.LayoutParams(dp(93),dp(56)));
+        ImageView image=new ImageView(this);image.setStateListAnimator(null);image.setElevation(0);image.setTranslationZ(0);bindFavoriteArtwork(image,item,dockMorningMode);image.setContentDescription(item.name);favoriteImages.add(image);column.addView(image,new LinearLayout.LayoutParams(dp(93),dp(56)));
         tile.setLayoutParams(new LinearLayout.LayoutParams(dp(115),-1));
         tile.setOnFocusChangeListener((v,focus)->{animateTile(tile,image,focus);if(focus){focusInFavorites=true;favoritePosition=index;moveDockGlass(tile);}});tile.setOnClickListener(v->launch(item.pkg));tile.setOnKeyListener((v,k,e)->e.getAction()==KeyEvent.ACTION_DOWN&&handleFavoriteKey(k,index));return tile;
+    }
+
+    private static final class SpotifyMorningDrawable extends Drawable {
+        private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        @Override public void draw(Canvas canvas){
+            Rect bounds=getBounds();float sx=bounds.width()/512f,sy=bounds.height()/308f;
+            int save=canvas.save();canvas.translate(bounds.left,bounds.top);
+            paint.setStyle(Paint.Style.FILL);paint.setColor(0xff1db954);canvas.drawCircle(138*sx,154*sy,61*sx,paint);
+            paint.setStyle(Paint.Style.STROKE);paint.setStrokeCap(Paint.Cap.ROUND);paint.setColor(0xffffffff);
+            paint.setStrokeWidth(9*sx);Path p=new Path();p.moveTo(101*sx,132*sy);p.cubicTo(125*sx,124*sy,155*sx,127*sy,177*sx,140*sy);canvas.drawPath(p,paint);
+            paint.setStrokeWidth(8*sx);p.reset();p.moveTo(106*sx,153*sy);p.cubicTo(127*sx,147*sy,151*sx,150*sy,170*sx,161*sy);canvas.drawPath(p,paint);
+            paint.setStrokeWidth(7*sx);p.reset();p.moveTo(111*sx,173*sy);p.cubicTo(128*sx,169*sy,146*sx,172*sy,160*sx,180*sy);canvas.drawPath(p,paint);
+            paint.setStyle(Paint.Style.FILL);paint.setColor(0xff111820);paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));paint.setTextSize(58*sy);canvas.drawText("Spotify",220*sx,174*sy,paint);
+            canvas.restoreToCount(save);
+        }
+        @Override public void setAlpha(int alpha){paint.setAlpha(alpha);invalidateSelf();}
+        @Override public void setColorFilter(android.graphics.ColorFilter filter){paint.setColorFilter(filter);invalidateSelf();}
+        @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
     }
 
     private void animateTile(View tile,View image,boolean focused){

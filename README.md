@@ -11,6 +11,7 @@ This project began with an original user concept and visual direction, with impl
 - Rounded app artwork, centered focus treatment, and a moving translucent selection surface.
 - Clock, date, time-based greeting, Friday greeting, and an offline Hindu festival greeting calendar.
 - Darker color palette from 8 PM to 8 AM.
+- Bright white, vector-sharp dock artwork during the morning session (6:00 AM–5:00 PM); the dark icon set returns outside that window.
 - Three 4K wallpapers change with local time: mountain morning (6:00 AM–5:00 PM), Toronto evening (5:00–8:00 PM), and bokeh night (8:00 PM–6:00 AM).
 - Android Settings shortcut in the app grid.
 - TV remote and D-pad navigation.

@@ -10,3 +10,5 @@ The source marks were redrawn from vector artwork so the existing 512 × 308 com
 - Willow: the white Willow / Cricbuzz lockup comes from the installed Willow app's vector banner artwork; its green background paths were omitted for the black tile.
 
 The `*-source.svg` files retain the original source geometry for YouTube, Prime Video, and Netflix. The app-ready vector resources are in `app/src/main/res/drawable-nodpi/`.
+
+Morning art uses white rounded icon faces with contrast-safe brand colors. Editable SVG previews are saved as morning-*.svg; the Android morning VectorDrawable resources are in `app/src/main/res/drawable-nodpi/`. Spotify’s morning mark is drawn as vector geometry with a system-rendered wordmark so it stays sharp at dock size.

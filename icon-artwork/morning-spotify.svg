@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="308" viewBox="0 0 512 308">
+<rect width="512" height="308" rx="62" fill="#fff"/>
+<circle cx="138" cy="154" r="61" fill="#1DB954"/>
+<g fill="none" stroke="#fff" stroke-linecap="round">
+ <path d="M101 132c24-8 54-5 76 8" stroke-width="9"/>
+ <path d="M106 153c21-6 45-3 64 8" stroke-width="8"/>
+ <path d="M111 173c17-4 35-1 49 7" stroke-width="7"/>
+</g>
+<text x="220" y="174" fill="#111820" font-family="Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="-2">Spotify</text>
+</svg>
