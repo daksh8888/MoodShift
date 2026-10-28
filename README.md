@@ -1,8 +1,8 @@
-# EcoTV Home
+# MoodShift
 
-A remote-first Android TV home screen with a focused app dock, app grid, and a colorful, time-aware visual design.
+A personal Android TV launcher with a five-app dock, remote-first app grid, time-aware wallpapers and greetings, and a custom visual style.
 
-This project began with an original user concept and visual direction, with implementation assistance from OpenAI Codex. It is an independent project and is not affiliated with Apple, Google, or any streaming service. Streaming-service names and icons belong to their respective owners.
+The idea started after I saw an online trend of people customizing their TV home screens. The design direction and feature choices are mine, including the rounded screen treatment and Apple-inspired Liquid Glass focus style. I used AI, including OpenAI Codex, to help with coding and debugging, then tested and refined the details on the TV. MoodShift is an independent project and is not affiliated with Apple, Google, or any streaming service. Streaming-service names and icons belong to their respective owners.
 
 ## Features
 
